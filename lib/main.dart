@@ -8,58 +8,39 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       title: 'fl_chart sample',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: const MyHomePage(),
+      home: MyHomePage(),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key}) : super(key: key);
+
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  /// 色は単色が良かったので、グラデーションは使用しない
+  // List<Color> gradientColors = [
+  //   const Color(0xff23b6e6),
+  //   const Color(0xff02d39a),
+  // ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("fl_chart sample"),
+        title: const Text('fl_chart sample'),
       ),
-      body: const LineChartSample2(),
-    );
-  }
-}
-
-class LineChartSample2 extends StatefulWidget {
-  const LineChartSample2({super.key});
-
-  @override
-  State<LineChartSample2> createState() => _LineChartSample2State();
-}
-
-class _LineChartSample2State extends State<LineChartSample2> {
-  List<Color> gradientColors = [
-    const Color(0xff23b6e6),
-    const Color(0xff02d39a),
-  ];
-
-  bool showAvg = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        AspectRatio(
-          aspectRatio: 1.70,
+      body: Center(
+        // グラフ表示画面(大枠)の設定
+        child: AspectRatio(
+          aspectRatio: 1.414,
           child: DecoratedBox(
             decoration: const BoxDecoration(
               borderRadius: BorderRadius.all(
@@ -75,27 +56,147 @@ class _LineChartSample2State extends State<LineChartSample2> {
                 bottom: 12,
               ),
               child: LineChart(
-                showAvg ? avgData() : mainData(),
+                mainData(),
               ),
             ),
           ),
         ),
-        SizedBox(
-          width: 60,
-          height: 34,
-          child: TextButton(
-            onPressed: () {
-              setState(() {
-                showAvg = !showAvg;
-              });
-            },
-            child: Text(
-              'avg',
-              style: TextStyle(
-                fontSize: 12,
-                color: showAvg ? Colors.white.withOpacity(0.5) : Colors.white,
-              ),
+      ),
+    );
+  }
+
+  LineChartData mainData() {
+    return LineChartData(
+      // タッチ操作時の設定
+      lineTouchData: LineTouchData(
+        handleBuiltInTouches: true, // タッチ時のアクションの有無
+        getTouchedSpotIndicator: customTouchedIndicators, // インジケーターの設定
+        // ツールチップの設定
+        touchTooltipData: LineTouchTooltipData(
+          getTooltipItems: customLineTooltipItem, // 表示文字設定
+          tooltipBgColor: Colors.white, // 背景の色
+          tooltipRoundedRadius: 2.0, // 角丸
+        ),
+      ),
+
+      // 背景のグリッド線の設定
+      gridData: FlGridData(
+        show: true, // 背景のグリッド線の有無
+        drawVerticalLine: true, // 水平方向のグリッド線の有無
+        horizontalInterval: 1.0, // 背景グリッドの横線間隔
+        verticalInterval: 1.0, // 背景グリッドの縦線間隔
+        // 背景グリッドの横線設定
+        getDrawingHorizontalLine: (value) {
+          return FlLine(
+            color: const Color(0xff37434d),
+            strokeWidth: 1.0, // 線の太さ
+          );
+        },
+        // 背景グリッドの縦線設定
+        getDrawingVerticalLine: (value) {
+          return FlLine(
+            color: const Color(0xff37434d),
+            strokeWidth: 1.0, // 線の太さ
+          );
+        },
+      ),
+
+      // グラフのタイトル設定
+      titlesData: FlTitlesData(
+        show: true, // タイトルの有無
+        rightTitles: AxisTitles(),
+        topTitles: AxisTitles(),
+        // 下側のタイトル設定
+        bottomTitles: AxisTitles(
+          // タイトル名
+          axisNameWidget: const Text(
+            "[曜日]",
+            style: TextStyle(
+              color: Color(0xff68737d),
             ),
+          ),
+          axisNameSize: 22.0, //タイトルの表示エリアの幅
+          // サイドタイトルの設定
+          sideTitles: SideTitles(
+            showTitles: true, // サイドタイトルの有無
+            interval: 1.0, // サイドタイトルの表示間隔
+            reservedSize: 40.0, // サイドタイトルの表示エリアの幅
+            getTitlesWidget: bottomTitleWidgets, // サイドタイトルの表示内容
+          ),
+        ),
+        leftTitles: AxisTitles(
+          axisNameWidget: const Text(
+            "【値】",
+            style: TextStyle(
+              color: Color(0xff68737d),
+            ),
+          ),
+          axisNameSize: 28.0, //タイトルの表示エリアの幅
+          sideTitles: SideTitles(
+            showTitles: true, // サイドタイトルの表示・非表示
+            interval: 1.0, // サイドタイトルの表示間隔
+            reservedSize: 42.0, // サイドタイトルの表示エリアの幅
+            getTitlesWidget: leftTitleWidgets,
+          ),
+        ),
+      ),
+
+      // グラフの外枠線
+      borderData: FlBorderData(
+        show: true, // 外枠線の有無
+        border: Border.all(
+          color: const Color(0xff37434d),
+        ),
+      ),
+
+      // グラフのx軸y軸のの表示数(最大値)
+      minX: 0.0,
+      maxX: 6.0,
+      minY: 0.0,
+      maxY: 6.0,
+
+      // チャート線の設定
+      lineBarsData: [
+        LineChartBarData(
+          // 表示する座標のリスト
+          spots: const [
+            FlSpot(0.0, 3.0),
+            FlSpot(1.0, 2.0),
+            FlSpot(2.0, 5.0),
+            FlSpot(3.0, 3.0),
+            FlSpot(4.0, 4.0),
+            FlSpot(5.0, 3.0),
+            FlSpot(6.0, 4.0),
+          ],
+          isCurved: false, // チャート線を曲線にするか折れ線にするか
+          /// グラデーションは使用しない
+          // gradient: LinearGradient(
+          //   colors: gradientColors,
+          // ),
+          barWidth: 1.0, // チャート線幅
+          isStrokeCapRound: false, // チャート線の開始と終了がQubicかRoundか（？）
+          dotData: FlDotData(
+            show: true, // 座標にドット表示の有無
+            // ドットの詳細設定
+            getDotPainter: (spot, percent, barData, index) =>
+                // ドットの詳細設定
+                FlDotCirclePainter(
+              radius: 2.0,
+              color: Colors.blue,
+              strokeWidth: 2.0,
+              strokeColor: Colors.blue,
+            ),
+          ),
+          // チャート線下部に色を付ける場合の設定
+          belowBarData: BarAreaData(
+            show: false, // チャート線下部の表示の有無
+
+            /// グラデーションは使用しない
+            // gradient: LinearGradient(
+            //   colors: gradientColors
+            //       .map((color) => color.withOpacity(0.3))
+            //       .toList(),
+            // ),
           ),
         ),
       ],
@@ -106,18 +207,30 @@ class _LineChartSample2State extends State<LineChartSample2> {
     const style = TextStyle(
       color: Color(0xff68737d),
       fontWeight: FontWeight.bold,
-      fontSize: 16,
+      fontSize: 16.0,
     );
     Widget text;
     switch (value.toInt()) {
+      case 0:
+        text = const Text('月', style: style);
+        break;
+      case 1:
+        text = const Text('火', style: style);
+        break;
       case 2:
-        text = const Text('MAR', style: style);
+        text = const Text('水', style: style);
+        break;
+      case 3:
+        text = const Text('木', style: style);
+        break;
+      case 4:
+        text = const Text('金', style: style);
         break;
       case 5:
-        text = const Text('JUN', style: style);
+        text = const Text('土', style: style);
         break;
-      case 8:
-        text = const Text('SEP', style: style);
+      case 6:
+        text = const Text('日', style: style);
         break;
       default:
         text = const Text('', style: style);
@@ -132,20 +245,20 @@ class _LineChartSample2State extends State<LineChartSample2> {
 
   Widget leftTitleWidgets(double value, TitleMeta meta) {
     const style = TextStyle(
-      color: Color(0xff67727d),
+      color: Color(0xff68737d),
       fontWeight: FontWeight.bold,
-      fontSize: 15,
+      fontSize: 15.0,
     );
     String text;
     switch (value.toInt()) {
       case 1:
-        text = '10K';
+        text = '10';
         break;
       case 3:
-        text = '30k';
+        text = '30';
         break;
       case 5:
-        text = '50k';
+        text = '50';
         break;
       default:
         return Container();
@@ -154,186 +267,39 @@ class _LineChartSample2State extends State<LineChartSample2> {
     return Text(text, style: style, textAlign: TextAlign.left);
   }
 
-  LineChartData mainData() {
-    return LineChartData(
-      gridData: FlGridData(
-        show: true,
-        drawVerticalLine: true,
-        horizontalInterval: 1,
-        verticalInterval: 1,
-        getDrawingHorizontalLine: (value) {
-          return FlLine(
-            color: const Color(0xff37434d),
-            strokeWidth: 1,
-          );
-        },
-        getDrawingVerticalLine: (value) {
-          return FlLine(
-            color: const Color(0xff37434d),
-            strokeWidth: 1,
-          );
-        },
-      ),
-      titlesData: FlTitlesData(
-        show: true,
-        rightTitles: AxisTitles(
-          sideTitles: SideTitles(showTitles: false),
+  // インジケーター設定
+  List<TouchedSpotIndicatorData> customTouchedIndicators(
+      LineChartBarData barData, List<int> spotIndexes) {
+    return spotIndexes.map((index) {
+      return TouchedSpotIndicatorData(
+        // 縦線の設定
+        FlLine(
+          color: Colors.blue.withOpacity(0.4),
+          strokeWidth: 2.0,
+          dashArray: [3, 3],
         ),
-        topTitles: AxisTitles(
-          sideTitles: SideTitles(showTitles: false),
-        ),
-        bottomTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: 30,
-            interval: 1,
-            getTitlesWidget: bottomTitleWidgets,
+        // ドットの設定
+        FlDotData(
+          show: true,
+          getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+            radius: 4.0,
+            color: Colors.blue,
+            // 外枠
+            strokeWidth: 1.0,
+            strokeColor: Colors.blue,
           ),
         ),
-        leftTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            interval: 1,
-            getTitlesWidget: leftTitleWidgets,
-            reservedSize: 42,
-          ),
-        ),
-      ),
-      borderData: FlBorderData(
-        show: true,
-        border: Border.all(color: const Color(0xff37434d)),
-      ),
-      minX: 0,
-      maxX: 11,
-      minY: 0,
-      maxY: 6,
-      lineBarsData: [
-        LineChartBarData(
-          spots: const [
-            FlSpot(0, 3),
-            FlSpot(2.6, 2),
-            FlSpot(4.9, 5),
-            FlSpot(6.8, 3.1),
-            FlSpot(8, 4),
-            FlSpot(9.5, 3),
-            FlSpot(11, 4),
-          ],
-          isCurved: true,
-          gradient: LinearGradient(
-            colors: gradientColors,
-          ),
-          barWidth: 5,
-          isStrokeCapRound: true,
-          dotData: FlDotData(
-            show: false,
-          ),
-          belowBarData: BarAreaData(
-            show: true,
-            gradient: LinearGradient(
-              colors: gradientColors
-                  .map((color) => color.withOpacity(0.3))
-                  .toList(),
-            ),
-          ),
-        ),
-      ],
-    );
+      );
+    }).toList();
   }
 
-  LineChartData avgData() {
-    return LineChartData(
-      lineTouchData: LineTouchData(enabled: false),
-      gridData: FlGridData(
-        show: true,
-        drawHorizontalLine: true,
-        verticalInterval: 1,
-        horizontalInterval: 1,
-        getDrawingVerticalLine: (value) {
-          return FlLine(
-            color: const Color(0xff37434d),
-            strokeWidth: 1,
+  // ツールチップの表示文字設定
+  List<LineTooltipItem> customLineTooltipItem(List<LineBarSpot> touchedSpots) {
+    return touchedSpots.map((LineBarSpot touchedSpot) {
+      final textStyle = TextStyle(
+          // Textのスタイルを変更したい場合は記載
           );
-        },
-        getDrawingHorizontalLine: (value) {
-          return FlLine(
-            color: const Color(0xff37434d),
-            strokeWidth: 1,
-          );
-        },
-      ),
-      titlesData: FlTitlesData(
-        show: true,
-        bottomTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: 30,
-            getTitlesWidget: bottomTitleWidgets,
-            interval: 1,
-          ),
-        ),
-        leftTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            getTitlesWidget: leftTitleWidgets,
-            reservedSize: 42,
-            interval: 1,
-          ),
-        ),
-        topTitles: AxisTitles(
-          sideTitles: SideTitles(showTitles: false),
-        ),
-        rightTitles: AxisTitles(
-          sideTitles: SideTitles(showTitles: false),
-        ),
-      ),
-      borderData: FlBorderData(
-        show: true,
-        border: Border.all(color: const Color(0xff37434d)),
-      ),
-      minX: 0,
-      maxX: 11,
-      minY: 0,
-      maxY: 6,
-      lineBarsData: [
-        LineChartBarData(
-          spots: const [
-            FlSpot(0, 3.44),
-            FlSpot(2.6, 3.44),
-            FlSpot(4.9, 3.44),
-            FlSpot(6.8, 3.44),
-            FlSpot(8, 3.44),
-            FlSpot(9.5, 3.44),
-            FlSpot(11, 3.44),
-          ],
-          isCurved: true,
-          gradient: LinearGradient(
-            colors: [
-              ColorTween(begin: gradientColors[0], end: gradientColors[1])
-                  .lerp(0.2)!,
-              ColorTween(begin: gradientColors[0], end: gradientColors[1])
-                  .lerp(0.2)!,
-            ],
-          ),
-          barWidth: 5,
-          isStrokeCapRound: true,
-          dotData: FlDotData(
-            show: false,
-          ),
-          belowBarData: BarAreaData(
-            show: true,
-            gradient: LinearGradient(
-              colors: [
-                ColorTween(begin: gradientColors[0], end: gradientColors[1])
-                    .lerp(0.2)!
-                    .withOpacity(0.1),
-                ColorTween(begin: gradientColors[0], end: gradientColors[1])
-                    .lerp(0.2)!
-                    .withOpacity(0.1),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
+      return LineTooltipItem(touchedSpot.y.toString(), textStyle);
+    }).toList();
   }
 }
